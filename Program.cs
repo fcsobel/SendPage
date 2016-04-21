@@ -29,11 +29,17 @@ namespace SendPage
 					var result = PreMailer.Net.PreMailer.MoveCssInline(htmlSource);
 
 					// send email
-					MailMessage message = new MailMessage(options.From, options.To, options.Url, result.Html) { IsBodyHtml = true };
+					MailMessage message = new MailMessage() { Body = result.Html, IsBodyHtml = true, }; 
+					if (!string.IsNullOrWhiteSpace(options.From)) { message.From = new MailAddress(options.From); }
+					if (!string.IsNullOrWhiteSpace(options.Subject)) { message.Subject = options.Subject; }
+					message.To.Add(options.To);
 
 					using (SmtpClient server = new SmtpClient())
 					{
-						server.Credentials = new System.Net.NetworkCredential(options.From, options.Password);
+						if (!string.IsNullOrWhiteSpace(options.Login) && !string.IsNullOrWhiteSpace(options.Password))
+						{
+							server.Credentials = new System.Net.NetworkCredential(options.Login, options.Password);
+						}
 						server.Send(message);
 					}
 				}
@@ -46,11 +52,17 @@ namespace SendPage
 			[Option('u', null, Required= true, HelpText = "Url")]
 			public string Url { get; set; }
 
-			[Option('f', null, Required= true, HelpText = "From")]
+			[Option('f', null, Required= false, HelpText = "From")]
 			public string From { get; set; }
 
 			[Option('t', null, Required= true, HelpText = "To")]
 			public string To { get; set; }
+						
+			[Option('s', null, Required= false, HelpText = "Subject")]
+			public string Subject { get; set; }
+
+			[Option('l', null, Required= false, HelpText = "Login")]
+			public string Login { get; set; }
 
 			[Option('p', null, Required= false, HelpText = "Password")]
 			public string Password { get; set; }
