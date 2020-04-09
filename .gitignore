@@ -16,6 +16,13 @@ bld/
 [Bb]in/
 [Oo]bj/
 
+# Visual Studio 2015/2017 cache/options directory
+.vs/
+
+# subversion
+.svn/
+.svn*
+
 # Roslyn cache directories
 *.ide/
 
