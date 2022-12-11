@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Mail;
+using System.Net.Mime;
 using System.Text;
 using System.Threading.Tasks;
 using CommandLine;
@@ -19,38 +20,56 @@ namespace SendPage
 
 			if (CommandLine.Parser.Default.ParseArguments(args, options))
 			{
-				// read source
-				using (WebClient client = new WebClient())
+				var html = ReadUrl(options.Url);
+
+				// send email
+				MailMessage message = new MailMessage() { Body = html, IsBodyHtml = true, };
+				if (!string.IsNullOrWhiteSpace(options.From)) { message.From = new MailAddress(options.From); }
+				if (!string.IsNullOrWhiteSpace(options.Subject)) { message.Subject = options.Subject; }
+				message.To.Add(options.To);
+
+				if (!string.IsNullOrWhiteSpace(options.Attachment))
+				{ 
+					Attachment attachment = new Attachment(options.Attachment);
+					message.Attachments.Add(attachment);
+				}
+
+				using (SmtpClient server = new SmtpClient())
 				{
-					// read page
-					string htmlSource = client.DownloadString(options.Url);
-
-					// inline css
-					var result = PreMailer.Net.PreMailer.MoveCssInline(htmlSource);
-
-					// send email
-					MailMessage message = new MailMessage() { Body = result.Html, IsBodyHtml = true, }; 
-					if (!string.IsNullOrWhiteSpace(options.From)) { message.From = new MailAddress(options.From); }
-					if (!string.IsNullOrWhiteSpace(options.Subject)) { message.Subject = options.Subject; }
-					message.To.Add(options.To);
-
-					using (SmtpClient server = new SmtpClient())
+					if (!string.IsNullOrWhiteSpace(options.Login) && !string.IsNullOrWhiteSpace(options.Password))
 					{
-						if (!string.IsNullOrWhiteSpace(options.Login) && !string.IsNullOrWhiteSpace(options.Password))
-						{
-							server.Credentials = new System.Net.NetworkCredential(options.Login, options.Password);
-						}
-						server.Send(message);
+						server.Credentials = new System.Net.NetworkCredential(options.Login, options.Password);
 					}
+
+					server.Send(message);
 				}
 			}
 		}
-		
+
+		public static string ReadUrl(string url)
+		{
+
+			using (WebClient client = new WebClient())
+			{
+				// read page
+				string htmlSource = client.DownloadString(url);
+				
+				// inline css
+				var result = PreMailer.Net.PreMailer.MoveCssInline(htmlSource);
+
+				return result.Html;
+			}		
+		}
+
+
 		// command line options
 		class Options
 		{
 			[Option('u', null, Required= true, HelpText = "Url")]
 			public string Url { get; set; }
+
+			[Option('a', null, Required= false, HelpText = "Attachment")]
+			public string Attachment { get; set; }
 
 			[Option('f', null, Required= false, HelpText = "From")]
 			public string From { get; set; }
